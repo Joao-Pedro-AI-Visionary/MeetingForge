@@ -7,10 +7,10 @@
     "start": "electron .",
     "dev": "electron . --dev",
     "setup": "node setup.js",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
-    "build:all": "electron-builder --win --mac --linux"
+    "build:win": "electron-builder --win --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:linux": "electron-builder --linux --publish never",
+    "build:all": "electron-builder --win --mac --linux --publish never"
   },
   "build": {
     "appId": "com.meetingforge.app",
