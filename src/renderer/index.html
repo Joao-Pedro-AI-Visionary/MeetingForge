@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeetingForge</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: linear-gradient(135deg, #e8e0d8, #d4ccc4, #c8beb6);
+      --bg-card: rgba(255, 255, 255, 0.18);
+      --bg-hover: rgba(255, 255, 255, 0.25);
+      --border: rgba(255, 255, 255, 0.25);
+      --text: #2d2a26;
+      --text-dim: #6b6560;
+      --text-muted: #9e9690;
+      --accent: #8b7355;
+      --accent-glow: rgba(139, 115, 85, 0.2);
+      --accent2: #a08968;
+      --success: #5a9e6a;
+      --error: #c45c5c;
+      --warning: #c49040;
+      --radius: 16px;
+      --font: 'DM Sans', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; background-attachment: fixed; }
+    .titlebar { -webkit-app-region: drag; height: 38px; background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+    .titlebar span { font-size: 12px; color: var(--text); font-weight: 500; letter-spacing: 0.05em; }
+    .app { padding-top: 38px; min-height: 100vh; display: flex; flex-direction: column; }
+    .header { padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 16px rgba(139, 115, 85, 0.25); }
+    .logo-text h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.03em; }
+    .logo-text p { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+    .header-right { display: flex; gap: 8px; }
+    .main { flex: 1; max-width: 900px; width: 100%; margin: 0 auto; padding: 28px 24px 60px; }
+    .btn { padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: var(--text-dim); font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+    .btn:hover { background: rgba(255, 255, 255, 0.25); color: var(--text); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; font-weight: 600; box-shadow: 0 4px 20px rgba(139, 115, 85, 0.3); }
+    .btn-primary:hover { box-shadow: 0 6px 28px rgba(139, 115, 85, 0.4); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-full { width: 100%; justify-content: center; padding: 14px; font-size: 14px; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 6px; }
+    .btn-copy.copied { background: rgba(90, 158, 106, 0.15); color: var(--success); border-color: rgba(90, 158, 106, 0.3); }
+    .steps { display: flex; align-items: center; justify-content: center; gap: 0; padding: 20px 0; }
+    .step { display: flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 20px; transition: all 0.3s; border: 1px solid transparent; }
+    .step.active { background: rgba(139, 115, 85, 0.12); border-color: rgba(139, 115, 85, 0.25); }
+    .step-num { font-size: 14px; font-weight: 600; }
+    .step.active .step-num { color: var(--accent); }
+    .step:not(.active) .step-num { color: var(--text-muted); }
+    .step-label { font-size: 13px; }
+    .step.active .step-label { color: var(--text); font-weight: 600; }
+    .step:not(.active) .step-label { color: var(--text-muted); }
+    .step.done .step-num { color: var(--success); }
+    .step.done .step-label { color: var(--text-dim); }
+    .step-line { width: 40px; height: 1px; margin: 0 4px; }
+    .step-line.done { background: var(--accent); }
+    .step-line:not(.done) { background: var(--border); }
+    .mode-selector { display: flex; gap: 4px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 14px; padding: 4px; width: fit-content; margin: 0 auto 24px; border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .mode-btn { padding: 10px 28px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: var(--text-dim); font-family: var(--font); font-size: 14px; cursor: pointer; transition: all 0.2s; }
+    .mode-btn.active { background: rgba(139, 115, 85, 0.12); color: var(--text); border-color: rgba(139, 115, 85, 0.25); font-weight: 600; }
+    .dropzone { border: 2px dashed rgba(139, 115, 85, 0.3); border-radius: var(--radius); padding: 52px 24px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.06); }
+    .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: rgba(255, 255, 255, 0.22); }
+    .dropzone.has-file { border-color: rgba(90, 158, 106, 0.4); background: rgba(90, 158, 106, 0.08); }
+    .dropzone-icon { font-size: 44px; margin-bottom: 12px; }
+    .dropzone-title { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+    .dropzone-sub { font-size: 13px; color: var(--text-dim); }
+    .dropzone-file { color: #3d7a4a; font-weight: 600; }
+    .dropzone-size { color: #6b8b6b; }
+    .file-duration { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .file-duration.long { background: rgba(240,160,48,0.12); color: var(--warning); border: 1px solid rgba(240,160,48,0.2); }
+    .file-duration.normal { background: rgba(76,204,106,0.1); color: var(--success); border: 1px solid rgba(76,204,106,0.15); }
+    .url-input-wrap { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.25); display: flex; align-items: center; padding: 4px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .url-icon { padding: 0 12px; font-size: 18px; color: var(--text-dim); }
+    .url-input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: 14px; font-family: var(--font); padding: 14px 8px; }
+    .url-input::placeholder { color: var(--text-muted); }
+    .url-providers { display: flex; gap: 16px; justify-content: center; margin: 10px 0 20px; font-size: 12px; color: var(--text-muted); }
+    .info-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 32px; }
+    .info-card { background: rgba(255, 255, 255, 0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: var(--radius); padding: 20px 16px; border: 1px solid rgba(255, 255, 255, 0.25); text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.06); }
+    .info-card-icon { font-size: 26px; margin-bottom: 8px; }
+    .info-card-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .info-card-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+    .processing { text-align: center; padding-top: 50px; }
+    .spinner { width: 72px; height: 72px; border-radius: 50%; border: 3px solid rgba(0,0,0,0.08); border-top-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto 28px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .processing-text { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+    .processing-pct { font-size: 13px; color: var(--text-dim); margin-bottom: 28px; }
+    .progress-bar { width: 100%; max-width: 420px; height: 6px; background: rgba(0,0,0,0.08); border-radius: 3px; margin: 0 auto; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: 0 2px 8px rgba(139, 115, 85, 0.3); }
+    .processing-stage { margin-top: 20px; padding: 12px 20px; border-radius: 10px; background: rgba(255, 255, 255, 0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.25); display: inline-block; font-size: 12px; color: var(--text-dim); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .processing-stage .stage-icon { margin-right: 6px; }
+    .processing-elapsed { margin-top: 14px; font-size: 12px; color: var(--text-muted); }
+    .long-file-notice { margin-top: 16px; padding: 12px 20px; border-radius: 10px; background: rgba(196,144,64,0.08); border: 1px solid rgba(196,144,64,0.2); font-size: 12px; color: #8a6a2a; max-width: 420px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+    .cancel-link { margin-top: 24px; }
+    .cancel-link button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-family: var(--font); font-size: 12px; text-decoration: underline; }
+    .cancel-link button:hover { color: var(--error); }
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      height: calc(100vh - 220px);
+    }
+    .results-grid .result-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .results-grid .result-content {
+      flex: 1;
+      max-height: none;
+      overflow-y: auto;
+    }
+    .main.results-mode {
+      max-width: 100%;
+      padding: 16px 20px 40px;
+    }
+    .panel-transcription .result-header { border-left: 3px solid #8b7355; }
+    .panel-topics .result-header { border-left: 3px solid #a08968; }
+    .panel-tasks .result-header { border-left: 3px solid #5a9e6a; }
+    @media (max-width: 1099px) {
+      .results-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+      .results-grid .panel-transcription { grid-row: 1 / 3; }
+    }
+    @media (max-width: 900px) {
+      .results-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        height: auto;
+      }
+      .results-grid .result-content { max-height: 400px; }
+    }
+    .md-content { font-family: var(--font); white-space: normal; }
+    .md-content h3 { color: #2d2a26; font-size: 14px; font-weight: 700; margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(139, 115, 85, 0.2); }
+    .md-content h3:first-child { margin-top: 0; }
+    .md-content strong { color: #6b5a42; }
+    .md-content ul, .md-content ol { padding-left: 20px; margin: 6px 0; }
+    .md-content li { margin: 4px 0; line-height: 1.6; }
+    .md-content .checkbox { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+    .md-content code { background: rgba(139, 115, 85, 0.08); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 12px; color: #5a4a3a; }
+    .md-content pre { background: rgba(139, 115, 85, 0.06); padding: 12px; border-radius: 8px; margin: 8px 0; overflow-x: auto; border: 1px solid rgba(139, 115, 85, 0.12); }
+    .md-content pre code { background: none; padding: 0; }
+    .md-content hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .md-content p { margin: 6px 0; line-height: 1.7; }
+    .panel-icon { font-size: 16px; margin-right: 8px; }
+    .panel-title { font-weight: 600; font-size: 13px; }
+    .panel-desc { font-size: 11px; color: var(--text-dim); margin-left: auto; margin-right: 12px; }
+    .result-panel { background: rgba(255, 255, 255, 0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: var(--radius); border: 1px solid rgba(255, 255, 255, 0.25); overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+    .result-header { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.1); }
+    .result-header span { font-size: 13px; color: var(--text-dim); }
+    .result-content { padding: 20px; margin: 0; font-size: 13px; line-height: 1.75; color: var(--text); font-family: var(--mono); white-space: pre-wrap; word-break: break-word; max-height: 480px; overflow-y: auto; }
+    .result-content::-webkit-scrollbar { width: 6px; }
+    .result-content::-webkit-scrollbar-track { background: transparent; }
+    .result-content::-webkit-scrollbar-thumb { background: rgba(139, 115, 85, 0.25); border-radius: 3px; }
+    .result-actions { display: flex; gap: 12px; margin-top: 20px; }
+    .result-actions .btn { flex: 1; justify-content: center; padding: 14px; font-size: 14px; }
+    .result-tip { margin-top: 20px; padding: 16px 20px; border-radius: 10px; background: rgba(139, 115, 85, 0.06); border: 1px solid rgba(139, 115, 85, 0.15); font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+    .result-tip strong { color: var(--accent); }
+    .dep-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(255, 255, 255, 0.18); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .dep-icon { font-size: 20px; }
+    .dep-name { flex: 1; font-size: 14px; font-weight: 500; }
+    .dep-status { font-size: 12px; padding: 4px 10px; border-radius: 8px; font-weight: 500; }
+    .dep-ok { background: rgba(90, 158, 106, 0.12); color: var(--success); }
+    .dep-missing { background: rgba(196, 92, 92, 0.12); color: var(--error); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s ease both; }
+    .heading { font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 8px; letter-spacing: -0.03em; color: var(--text); }
+    .subheading { text-align: center; color: var(--text-dim); font-size: 14px; margin-bottom: 36px; line-height: 1.6; }
+    .settings-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .settings-overlay.open { opacity: 1; pointer-events: all; }
+    .settings-panel { background: rgba(255, 255, 255, 0.22); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: var(--radius); width: 500px; padding: 28px; transform: translateY(10px); transition: transform 0.2s; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+    .settings-overlay.open .settings-panel { transform: translateY(0); }
+    .settings-title { font-size: 18px; font-weight: 700; margin-bottom: 24px; }
+    .settings-group { margin-bottom: 20px; }
+    .settings-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block; }
+    .settings-desc { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+    .settings-input { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.15); color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
+    .settings-input:focus { border-color: var(--accent); }
+    .settings-select { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.15); color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
+    .settings-toggle { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .toggle-track { width: 44px; height: 24px; border-radius: 12px; background: rgba(0,0,0,0.15); position: relative; transition: background 0.2s; flex-shrink: 0; }
+    .toggle-track.on { background: var(--accent); }
+    .toggle-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: left 0.2s; }
+    .toggle-track.on .toggle-thumb { left: 23px; }
+    .settings-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+  </style>
+</head>
+<body>
+
+<div class="titlebar"><span>MeetingForge</span></div>
+
+<div class="app">
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">&#9889;</div>
+      <div class="logo-text">
+        <h1>MeetingForge</h1>
+        <p>Transcri&#231;&#227;o &rarr; T&#243;picos &rarr; Tasks</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-sm" onclick="openSettings()">&#9881; Config</button>
+      <button class="btn btn-sm" onclick="api.openOutputFolder()">&#128194; Arquivos</button>
+    </div>
+  </header>
+
+  <div class="steps" id="steps-bar"></div>
+  <div class="main" id="main-content"></div>
+</div>
+
+<div class="settings-overlay" id="settings-overlay" onclick="if(event.target===this) closeSettings()">
+  <div class="settings-panel">
+    <div class="settings-title">&#9881; Configura&#231;&#245;es</div>
+    <div class="settings-group">
+      <label class="settings-label">Modelo Whisper</label>
+      <p class="settings-desc">Modelos maiores s&#227;o mais precisos, mas mais lentos. Para arquivos longos (3h+), use "base" ou "small".</p>
+      <select class="settings-select" id="set-model">
+        <option value="tiny">tiny &mdash; R&#225;pido (~1GB RAM)</option>
+        <option value="base" selected>base &mdash; Equilibrado (~1GB RAM)</option>
+        <option value="small">small &mdash; Boa precis&#227;o (~2GB RAM)</option>
+        <option value="medium">medium &mdash; Excelente para PT (~5GB RAM)</option>
+        <option value="large">large &mdash; M&#225;xima precis&#227;o (~10GB RAM)</option>
+      </select>
+    </div>
+    <div class="settings-group">
+      <label class="settings-label">Usar IA para organizar e gerar tasks</label>
+      <div class="settings-toggle" onclick="toggleAI()">
+        <div class="toggle-track" id="set-ai-toggle"><div class="toggle-thumb"></div></div>
+        <span id="set-ai-label" style="font-size:13px; color: var(--text-dim);">Ativado</span>
+      </div>
+    </div>
+    <div class="settings-group" id="api-key-group">
+      <label class="settings-label">Chave da API Anthropic</label>
+      <p class="settings-desc">Necess&#225;ria para extra&#231;&#227;o com IA. Obtenha em console.anthropic.com</p>
+      <input type="password" class="settings-input" id="set-apikey" placeholder="sk-ant-...">
+    </div>
+    <div class="settings-actions">
+      <button class="btn" onclick="closeSettings()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const state = {
+  step: "upload", inputMode: "file", file: null, url: "",
+  progress: 0, progressText: "", progressStage: "",
+  transcription: "", topics: "", prompt: "",
+  settings: { model: "base", useAI: true, apiKey: "" },
+  depsResult: null,
+  processStartTime: null,
+};
+
+function esc(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function formatDuration(seconds) {
+  if (!seconds || seconds <= 0) return "";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return h + "h" + String(m).padStart(2,"0") + "min";
+  return m + "min" + String(s).padStart(2,"0") + "s";
+}
+
+function formatFileSize(bytes) {
+  if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(1) + " GB";
+  return (bytes / 1048576).toFixed(1) + " MB";
+}
+
+function formatElapsed(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return h + "h " + (m % 60) + "min";
+  if (m > 0) return m + "min " + (s % 60) + "s";
+  return s + "s";
+}
+
+async function init() {
+  state.settings = await api.loadSettings();
+  applySettingsToUI();
+  render();
+  const deps = await api.checkDeps();
+  if (deps.issues.length > 0) { state.step = "deps"; state.depsResult = deps; render(); }
+  api.onProcessProgress((d) => {
+    state.progress = d.percent;
+    state.progressText = d.message;
+    state.progressStage = d.stage || "";
+    if (state.step === "transcribing") updateProgress();
+  });
+}
+
+function render() {
+  renderSteps();
+  const el = document.getElementById("main-content");
+  el.classList.toggle("results-mode", state.step === "results");
+  if (state.step === "upload") el.innerHTML = viewUpload();
+  else if (state.step === "deps") el.innerHTML = viewDeps();
+  else if (state.step === "transcribing") el.innerHTML = viewProcessing();
+  else if (state.step === "results") el.innerHTML = viewResults();
+}
+
+function renderSteps() {
+  const defs = [{id:"upload",l:"Upload",n:"&#9312;"},{id:"transcribing",l:"Processando",n:"&#9313;"},{id:"results",l:"Resultados",n:"&#9314;"}];
+  const order = ["upload","deps","transcribing","results"];
+  const ci = order.indexOf(state.step);
+  let h = "";
+  defs.forEach((s,i) => {
+    const si = order.indexOf(s.id), current = state.step===s.id||(state.step==="deps"&&s.id==="upload"), done = ci>si;
+    const cls = current?"active":done?"done":"";
+    h += '<div class="step '+cls+'"><span class="step-num">'+(done?"&#10003;":s.n)+'</span><span class="step-label">'+s.l+'</span></div>';
+    if (i<2) h += '<div class="step-line '+(done?"done":"")+'"></div>';
+  });
+  document.getElementById("steps-bar").innerHTML = h;
+}
+
+function viewUpload() {
+  const hf = state.file !== null, hu = state.url.trim().length > 0;
+  const can = (state.inputMode === "file" && hf) || (state.inputMode === "url" && hu);
+  let h = '<div class="fade-in">';
+  h += '<h2 class="heading">Transforme reuni&#245;es em a&#231;&#227;o</h2>';
+  h += '<p class="subheading">Fa&#231;a upload da grava&#231;&#227;o ou cole o link. O sistema transcreve,<br>organiza por t&#243;picos e gera tasks prontas para desenvolvimento com IA.</p>';
+  h += '<div class="mode-selector"><button class="mode-btn '+(state.inputMode==="file"?"active":"")+'" onclick="setMode(\'file\')">&#128193; Arquivo</button><button class="mode-btn '+(state.inputMode==="url"?"active":"")+'" onclick="setMode(\'url\')">&#128279; Link</button></div>';
+
+  if (state.inputMode === "file") {
+    h += '<div class="dropzone '+(hf?"has-file":"")+'" onclick="selectFile()" ondragover="event.preventDefault();this.classList.add(\'dragover\')" ondragleave="this.classList.remove(\'dragover\')" ondrop="handleDrop(event)">';
+    if (hf) {
+      const dur = state.file.duration;
+      const isLong = dur && dur > 7200; // > 2h
+      h += '<div class="dropzone-icon">&#9989;</div>';
+      h += '<div class="dropzone-title dropzone-file">' + esc(state.file.name) + '</div>';
+      h += '<div class="dropzone-sub dropzone-size">' + formatFileSize(state.file.size);
+      if (dur) h += ' &mdash; ' + formatDuration(dur);
+      h += ' &mdash; Clique para trocar</div>';
+      if (dur) {
+        h += '<div class="file-duration ' + (isLong ? "long" : "normal") + '">';
+        if (isLong) h += '&#9888; Arquivo longo &mdash; ser&#225; processado em partes';
+        else h += '&#10003; Dura&#231;&#227;o compat&#237;vel';
+        h += '</div>';
+      }
+    } else {
+      h += '<div class="dropzone-icon">&#127897;</div>';
+      h += '<div class="dropzone-title">Arraste o arquivo aqui ou clique para selecionar</div>';
+      h += '<div class="dropzone-sub">MP4, MP3, WAV, WebM, M4A &mdash; sem limite de dura&#231;&#227;o</div>';
+    }
+    h += '</div>';
+  } else {
+    h += '<div class="url-input-wrap"><span class="url-icon">&#128279;</span><input class="url-input" type="text" value="'+esc(state.url)+'" placeholder="Cole o link do YouTube, Google Meet, Zoom..." oninput="state.url=this.value"></div>';
+    h += '<div class="url-providers"><span>&#9656; YouTube</span><span>&#9656; Google Meet</span><span>&#9656; Zoom</span><span>&#9656; Loom</span></div>';
+  }
+
+  h += '<button class="btn btn-primary btn-full" '+(can?"":"disabled")+' onclick="startProcessing()" style="margin-top:20px">&#9889; Processar Reuni&#227;o</button>';
+
+  h += '<div class="info-cards">';
+  h += '<div class="info-card"><div class="info-card-icon">&#127897;</div><div class="info-card-title">Transcri&#231;&#227;o Fiel</div><div class="info-card-desc">Whisper AI local, 100% gr&#225;tis, suporte a reuni&#245;es de 3-5h</div></div>';
+  h += '<div class="info-card"><div class="info-card-icon">&#128203;</div><div class="info-card-title">Organiza&#231;&#227;o por T&#243;picos</div><div class="info-card-desc">Conte&#250;do reorganizado por assunto automaticamente</div></div>';
+  h += '<div class="info-card"><div class="info-card-icon">&#129302;</div><div class="info-card-title">Tasks Prontas</div><div class="info-card-desc">Prompts prontos para colar no Claude Code ou Cursor</div></div>';
+  h += '</div></div>';
+  return h;
+}
+
+function viewDeps() {
+  const d = state.depsResult;
+  const items = [
+    {name:"Python 3",ok:!!d.python},{name:"FFmpeg",ok:d.ffmpeg},
+    {name:"OpenAI Whisper",ok:!d.issues.includes("openai-whisper"),pip:true},
+    {name:"yt-dlp",ok:!d.issues.includes("yt-dlp"),pip:true}
+  ];
+  const allOk = items.every(i=>i.ok);
+  const canAuto = d.python && items.some(i=>!i.ok&&i.pip);
+  let h = '<div class="fade-in"><h2 class="heading">Verifica&#231;&#227;o de Depend&#234;ncias</h2><p class="subheading">O MeetingForge precisa de alguns programas no seu computador.</p>';
+  items.forEach(i => {
+    h += '<div class="dep-item"><span class="dep-icon">'+(i.ok?"&#9989;":"&#10060;")+'</span><span class="dep-name">'+i.name+'</span><span class="dep-status '+(i.ok?"dep-ok":"dep-missing")+'">'+(i.ok?"Instalado":"N&#227;o encontrado")+'</span></div>';
+  });
+  h += '<div style="margin-top:24px;display:flex;gap:12px">';
+  if (canAuto) h += '<button class="btn btn-primary btn-full" onclick="installPythonDeps()">&#128230; Instalar depend&#234;ncias Python</button>';
+  h += '<button class="btn btn-full" onclick="recheckDeps()">&#128260; Verificar novamente</button></div>';
+  if (!d.python) h += '<div class="result-tip" style="margin-top:16px"><strong>&#9888; Python n&#227;o encontrado.</strong> Instale Python 3.9+ de python.org e reinicie o app.</div>';
+  if (!d.ffmpeg) h += '<div class="result-tip" style="margin-top:12px"><strong>&#9888; FFmpeg n&#227;o encontrado.</strong> Instale de ffmpeg.org ou use: brew/choco install ffmpeg</div>';
+  if (allOk) h += '<div class="result-tip" style="margin-top:16px;border-color:rgba(76,204,106,0.2);background:rgba(76,204,106,0.04)"><strong style="color:var(--success)">&#9989; Tudo pronto!</strong></div><button class="btn btn-primary btn-full" style="margin-top:16px" onclick="goToUpload()">Continuar &rarr;</button>';
+  h += '</div>';
+  return h;
+}
+
+function stageLabel(stage) {
+  const map = {
+    setup: "&#128295; Preparando",
+    download: "&#11015; Download",
+    transcription: "&#127897; Transcrevendo",
+    extraction: "&#129302; Organizando e gerando tasks",
+    saving: "&#128190; Salvando",
+    done: "&#9989; Conclu&#237;do",
+  };
+  return map[stage] || "&#9881; Processando";
+}
+
+function viewProcessing() {
+  const isLong = state.file && state.file.duration && state.file.duration > 7200;
+  let h = '<div class="processing fade-in">';
+  h += '<div class="spinner"></div>';
+  h += '<div class="processing-text" id="pt">' + esc(state.progressText || "Iniciando...") + '</div>';
+  h += '<div class="processing-pct" id="pp">' + state.progress + '% conclu&#237;do</div>';
+  h += '<div class="progress-bar"><div class="progress-fill" id="pb" style="width:' + state.progress + '%"></div></div>';
+
+  if (state.progressStage) {
+    h += '<div class="processing-stage" id="ps"><span class="stage-icon">' + stageLabel(state.progressStage) + '</span></div>';
+  }
+
+  h += '<div class="processing-elapsed" id="pe"></div>';
+
+  if (isLong) {
+    h += '<div class="long-file-notice">&#9888; Arquivo longo detectado (' + formatDuration(state.file.duration) + '). O &#225;udio ser&#225; dividido em partes de 30min para evitar problemas de mem&#243;ria. O processo pode levar bastante tempo.</div>';
+  }
+
+  h += '<div class="cancel-link"><button onclick="cancelProcess()">Cancelar processamento</button></div>';
+  h += '</div>';
+  return h;
+}
+
+function updateProgress() {
+  const t = document.getElementById("pt");
+  const p = document.getElementById("pp");
+  const b = document.getElementById("pb");
+  const s = document.getElementById("ps");
+  const e = document.getElementById("pe");
+  if (t) t.textContent = state.progressText;
+  if (p) p.textContent = state.progress + "% concluido";
+  if (b) b.style.width = state.progress + "%";
+  if (s && state.progressStage) s.innerHTML = '<span class="stage-icon">' + stageLabel(state.progressStage) + '</span>';
+  if (e && state.processStartTime) {
+    const elapsed = Date.now() - state.processStartTime;
+    e.textContent = "Tempo decorrido: " + formatElapsed(elapsed);
+  }
+}
+
+// Update elapsed time every second during processing
+setInterval(() => {
+  if (state.step === "transcribing" && state.processStartTime) {
+    const e = document.getElementById("pe");
+    if (e) {
+      const elapsed = Date.now() - state.processStartTime;
+      e.textContent = "Tempo decorrido: " + formatElapsed(elapsed);
+    }
+  }
+}, 1000);
+
+function renderMarkdown(text) {
+  let html = esc(text);
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Code blocks
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Checkboxes
+  html = html.replace(/^- \[ \] (.+)$/gm, '<li><span class="checkbox"></span>$1</li>');
+  html = html.replace(/^- \[x\] (.+)$/gm, '<li><span class="checkbox" style="background:var(--success);border-color:var(--success)"></span>$1</li>');
+  // List items
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li>$1. $2</li>');
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr>');
+  // Paragraphs (double newline)
+  html = html.replace(/\n\n/g, '</p><p>');
+  // Single newlines in list context - keep as is
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+function viewResults() {
+  const panels = [
+    {
+      key: "transcription",
+      cls: "panel-transcription",
+      icon: "&#127897;",
+      title: "Transcri\u00e7\u00e3o Bruta",
+      desc: "Texto completo com timestamps",
+      content: state.transcription,
+      mono: true
+    },
+    {
+      key: "topics",
+      cls: "panel-topics",
+      icon: "&#128203;",
+      title: "Por T\u00f3picos",
+      desc: "Conte\u00fado organizado por assunto",
+      content: state.topics,
+      mono: false
+    },
+    {
+      key: "prompt",
+      cls: "panel-tasks",
+      icon: "&#129302;",
+      title: "Tasks para IA",
+      desc: "Pronto para Claude Code / Cursor",
+      content: state.prompt,
+      mono: false
+    }
+  ];
+
+  let h = '<div class="fade-in"><div class="results-grid">';
+
+  for (const p of panels) {
+    h += '<div class="result-panel ' + p.cls + '">';
+    h += '<div class="result-header">';
+    h += '<span class="panel-icon">' + p.icon + '</span>';
+    h += '<span class="panel-title">' + p.title + '</span>';
+    h += '<span class="panel-desc">' + p.desc + '</span>';
+    h += '<button class="btn btn-sm btn-copy" id="cbtn-' + p.key + '" onclick="copyPanel(\'' + p.key + '\')">&#9112; Copiar</button>';
+    h += '</div>';
+    if (p.mono) {
+      h += '<pre class="result-content">' + esc(p.content) + '</pre>';
+    } else {
+      h += '<div class="result-content md-content">' + renderMarkdown(p.content) + '</div>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div>';
+  h += '<div class="result-actions" style="margin-top:16px">';
+  h += '<button class="btn" onclick="goToUpload()">&larr; Nova Reuni\u00e3o</button>';
+  h += '<button class="btn" onclick="api.openOutputFolder()">&#128194; Abrir Pasta</button>';
+  h += '<button class="btn btn-primary" onclick="downloadAll()">&#11015; Baixar Tudo</button>';
+  h += '</div></div>';
+  return h;
+}
+
+// Actions
+function setMode(m) { state.inputMode = m; render(); }
+
+async function selectFile() {
+  const r = await api.selectFile();
+  if (r) { state.file = r; render(); }
+}
+
+function handleDrop(e) {
+  e.preventDefault(); e.currentTarget.classList.remove("dragover");
+  if (e.dataTransfer.files.length > 0) {
+    const f = e.dataTransfer.files[0];
+    state.file = { path: f.path, name: f.name, size: f.size, duration: null };
+    render();
+  }
+}
+
+async function startProcessing() {
+  state.step = "transcribing";
+  state.progress = 0;
+  state.progressText = "Iniciando...";
+  state.progressStage = "setup";
+  state.processStartTime = Date.now();
+  render();
+
+  const r = await api.processMeeting({
+    filePath: state.inputMode === "file" ? state.file.path : null,
+    url: state.inputMode === "url" ? state.url : null,
+    model: state.settings.model,
+    useAI: state.settings.useAI,
+    apiKey: state.settings.apiKey,
+  });
+
+  if (r.success) {
+    state.transcription = r.transcription;
+    state.topics = r.topics;
+    state.prompt = r.prompt;
+    state.step = "results";
+  } else {
+    alert("Erro:\n\n" + r.error);
+    state.step = "upload";
+  }
+  state.processStartTime = null;
+  render();
+}
+
+async function cancelProcess() {
+  await api.cancelProcess();
+  state.step = "upload";
+  state.processStartTime = null;
+  render();
+}
+
+async function copyPanel(key) {
+  const data = { transcription: state.transcription, topics: state.topics, prompt: state.prompt };
+  await api.copyToClipboard(data[key]);
+  const b = document.getElementById("cbtn-" + key);
+  b.classList.add("copied"); b.innerHTML = "&#10003; Copiado";
+  setTimeout(() => { b.classList.remove("copied"); b.innerHTML = "&#9112; Copiar"; }, 2000);
+}
+
+function downloadAll() {
+  const c = "TRANSCRICAO\n" + "=".repeat(50) + "\n\n" + state.transcription + "\n\n\nTOPICOS\n" + "=".repeat(50) + "\n\n" + state.topics + "\n\n\nTASKS PARA DESENVOLVIMENTO\n" + "=".repeat(50) + "\n\n" + state.prompt;
+  const b = new Blob([c], { type: "text/plain;charset=utf-8" }), a = document.createElement("a");
+  a.href = URL.createObjectURL(b); a.download = "meetingforge_" + new Date().toISOString().slice(0, 10) + ".txt"; a.click();
+}
+
+function goToUpload() {
+  state.step = "upload"; state.file = null; state.url = "";
+  state.processStartTime = null;
+  render();
+}
+
+async function recheckDeps() {
+  state.depsResult = await api.checkDeps();
+  if (state.depsResult.issues.length === 0) state.step = "upload";
+  render();
+}
+
+async function installPythonDeps() { await api.installDeps(); await recheckDeps(); }
+
+// Settings
+function openSettings() { document.getElementById("settings-overlay").classList.add("open"); applySettingsToUI(); }
+function closeSettings() { document.getElementById("settings-overlay").classList.remove("open"); }
+
+function toggleAI() { state.settings.useAI = !state.settings.useAI; applySettingsToUI(); }
+
+function applySettingsToUI() {
+  const t = document.getElementById("set-ai-toggle");
+  const l = document.getElementById("set-ai-label");
+  const m = document.getElementById("set-model");
+  const k = document.getElementById("set-apikey");
+  const g = document.getElementById("api-key-group");
+  if (t) { if (state.settings.useAI) t.classList.add("on"); else t.classList.remove("on"); }
+  if (l) l.textContent = state.settings.useAI ? "Ativado (recomendado)" : "Desativado";
+  if (m) m.value = state.settings.model;
+  if (k) k.value = state.settings.apiKey || "";
+  if (g) g.style.display = state.settings.useAI ? "block" : "none";
+}
+
+async function saveSettings() {
+  state.settings.model = document.getElementById("set-model").value;
+  state.settings.apiKey = document.getElementById("set-apikey").value;
+  await api.saveSettings(state.settings);
+  closeSettings();
+}
+
+init();
+</script>
+</body>
+</html>
