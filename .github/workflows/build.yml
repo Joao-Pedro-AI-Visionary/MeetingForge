@@ -30,6 +30,8 @@ jobs:
       - run: npm install
 
       - run: npm run ${{ matrix.build }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/upload-artifact@v4
         with:
